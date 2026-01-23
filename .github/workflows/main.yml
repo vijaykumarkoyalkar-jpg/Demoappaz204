@@ -1,23 +1,34 @@
-name: Auto comment on issue
+name: Publish .NET package to GitHub Packages
+
 on:
-  issues:
-    types: [opened]
+  push: main
+
+permissions: 
+   contents: read
+   packages: write
 
 jobs:
-  comment:
+  build-and-publish:
     runs-on: ubuntu-latest
 
-    permissions:
-      issues: write
-    
     steps:
-      - name: Add comment to new issue
-        uses: actions/github-script@v8
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: setup SDK
+        uses: actions/setup-dotnet@v4
         with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '🎉 Thank you for opening this issue! 👀 We will look into it as soon as possible. 🚀\n\n📝 Please make sure to provide all necessary details to help us resolve this quickly.\n\n💡 **Tip:** Check our documentation or existing issues for similar problems before we investigate.'
-            })
+          dotnet-version: '7.x'
+      
+      - name: Restore
+        run: dotnet restore
+        
+      - name: Build
+        run: dotnet build
+
+      - name: Pack
+        run: dotnet pack --output ./nupkg
+
+      - name: Publish Package
+        run: dotnet nuget push "./nupkg/*.nupkg" --source "https://nuget.pkg.github.com/ibnehussain/index.json" --apik-key ${{secrets.GITHUB_TOKEN}}
+      
