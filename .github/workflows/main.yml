@@ -1,22 +1,36 @@
-name: Auto Comment on issue
+
+name: Publish Package
 
 on:
-  issues:
-    types: [opened]
+  push:
+    branches:
+      - master
 
 jobs:
-  comment:
+  build:
     runs-on: ubuntu-latest
-  
+
     steps:
-      - name: Add comment to new issues
-        uses: actions/github-script@v8
+      - name: Check out Code
+        uses: actions/checkout@v6.0.2
+
+      - name: Setup .NET Core SDK
+        uses: actions/setup-dotnet@v5.1.0
         with:
-          script: |
-            github.rest.issues.createComment
-            ({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: 'Thank you for opening this issue!🚀 We will look into it as soon as possible✨.'
-            });
+          dotnet-version: '8.x'
+
+      - name: Restore 
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build
+
+        
+      - name: Pack- Create a NuGet Package
+        run: dotnet pack --output ./nupkg
+
+      - name: List all files
+        run: ls -al
+
+      - name: Publish Package to GitHub Packages
+        run: dotnet nuget push "./nupkg/*.nupkg" --source "https://nuget.pkg.github.com/ibnehussain/index.json" --api-key ${{secrets.GITHUB_TOKEN}}
